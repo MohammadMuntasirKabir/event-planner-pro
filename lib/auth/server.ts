@@ -1,7 +1,6 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
 const COOKIE_NAME = "ep_session";
 
@@ -36,16 +35,4 @@ export async function setSession(user: SessionUser): Promise<void> {
 export async function clearSession(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);
-}
-
-/**
- * Sign in helper: set session cookie then redirect.
- * Must be called from a Server Action / Server Component.
- */
-export async function signIn(
-  user: SessionUser,
-  redirectTo: string = "/dashboard"
-): Promise<never> {
-  await setSession(user);
-  redirect(redirectTo);
 }
