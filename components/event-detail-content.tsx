@@ -27,6 +27,7 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
   const [isPending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
   const [inviteToken, setInviteToken] = useState(event.invite?.token || null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const inviteUrl = inviteToken
@@ -34,11 +35,19 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
     : "";
 
   async function handleCreateInvite() {
+    setInviteError(null);
     startTransition(async () => {
-      const res = await fetch(`/api/events/${event.id}/invite`, { method: "POST" });
-      const data = await res.json();
-      if (data.token) {
-        setInviteToken(data.token);
+      try {
+        const res = await fetch(`/api/events/${event.id}/invite`, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to generate invite link");
+        }
+        if (data.token) {
+          setInviteToken(data.token);
+        }
+      } catch (err: any) {
+        setInviteError(err.message || "Failed to generate invite link");
       }
     });
   }
@@ -135,6 +144,9 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
             <LinkIcon className="h-4 w-4" />
             {isPending ? "Generating..." : "Generate Invite Link"}
           </button>
+        )}
+        {inviteError && (
+          <p className="mt-2 text-sm text-red-400">{inviteError}</p>
         )}
       </div>
 
