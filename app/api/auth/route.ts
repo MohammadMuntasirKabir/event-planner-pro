@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession, setSession, clearSession } from "@/lib/auth/server";
 import prisma from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/auth/passwords";
 import { normalizeEmail } from "@/lib/utils";
 
-const COOKIE_NAME = "ep_session";
-
-// GET /api/auth — return current session
-export async function GET() {
-  const session = await getSession();
-  return NextResponse.json({ user: session });
-}
+// Legacy email/password auth endpoints (new auth uses Auth.js [...nextauth])
 
 // POST /api/auth — sign in with email/password
 export async function POST(request: NextRequest) {
@@ -27,7 +20,7 @@ export async function POST(request: NextRequest) {
     where: { email: normalizeEmail(email) },
   });
 
-  if (!user) {
+  if (!user || !user.passwordHash) {
     return NextResponse.json(
       { error: "Invalid email or password" },
       { status: 401 }
@@ -40,12 +33,6 @@ export async function POST(request: NextRequest) {
       { status: 401 }
     );
   }
-
-  await setSession({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-  });
 
   return NextResponse.json({
     user: { id: user.id, email: user.email, name: user.name },
@@ -93,19 +80,17 @@ export async function PUT(request: NextRequest) {
     },
   });
 
-  await setSession({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-  });
-
   return NextResponse.json({
     user: { id: user.id, email: user.email, name: user.name },
   });
 }
 
-// DELETE /api/auth — sign out
+// GET /api/auth/legacy-session — return current session (kept for backward compat)
+export async function GET() {
+  return NextResponse.json({ user: null });
+}
+
+// DELETE /api/auth — sign out (legacy)
 export async function DELETE() {
-  await clearSession();
   return NextResponse.json({ success: true });
 }

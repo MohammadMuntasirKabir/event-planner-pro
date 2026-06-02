@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/server";
+import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { generateToken } from "@/lib/utils";
 
@@ -10,8 +10,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Params }
 ) {
-  const session = await getSession();
-  if (!session) {
+  const session = await auth();
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -19,7 +19,7 @@ export async function POST(
 
   // Verify ownership
   const event = await prisma.event.findFirst({
-    where: { id: eventId, ownerUserId: session.id },
+    where: { id: eventId, ownerUserId: session.user.id },
     include: { invite: true },
   });
 

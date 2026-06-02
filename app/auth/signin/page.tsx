@@ -4,12 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import { auth } from "@/lib/auth";
 
-export default function SignUpPage() {
+export default function SignInPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -19,18 +19,6 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Registration failed");
-      }
-
-      // Sign in with the new credentials
       const result = await signIn("credentials", {
         email,
         password,
@@ -42,8 +30,8 @@ export default function SignUpPage() {
       } else {
         router.push("/dashboard");
       }
-    } catch (err: any) {
-      setError(err.message || "Registration failed");
+    } catch {
+      setError("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -62,9 +50,9 @@ export default function SignUpPage() {
   return (
     <div className="mx-auto w-full max-w-md">
       <div className="animate-fade-in-up rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm sm:p-8">
-        <h1 className="text-2xl font-bold text-white mb-2">Create Account</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">Sign In</h1>
         <p className="text-sm text-white/50 mb-8">
-          Start planning amazing events today.
+          Welcome back! Sign in to manage your events.
         </p>
 
         {/* OAuth buttons */}
@@ -112,7 +100,7 @@ export default function SignUpPage() {
             <div className="w-full border-t border-white/10" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-[#0a0a0f] px-3 text-white/40">or sign up with email</span>
+            <span className="bg-[#0a0a0f] px-3 text-white/40">or continue with email</span>
           </div>
         </div>
 
@@ -126,29 +114,24 @@ export default function SignUpPage() {
         {/* Credentials form */}
         <form onSubmit={handleCredentialsSubmit} className="space-y-5">
           <div className="space-y-2">
-            <label htmlFor="signup-name" className="block text-sm font-medium text-white/70">Name</label>
-            <input id="signup-name" name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 transition-all duration-200 focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+            <label htmlFor="signin-email" className="block text-sm font-medium text-white/70">Email</label>
+            <input id="signin-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 transition-all duration-200 focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="signup-email" className="block text-sm font-medium text-white/70">Email</label>
-            <input id="signup-email" name="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 transition-all duration-200 focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="signup-password" className="block text-sm font-medium text-white/70">Password</label>
-            <input id="signup-password" name="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 transition-all duration-200 focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
+            <label htmlFor="signin-password" className="block text-sm font-medium text-white/70">Password</label>
+            <input id="signin-password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 transition-all duration-200 focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20" />
           </div>
 
           <button type="submit" disabled={loading} className="w-full rounded-lg bg-violet-600 px-6 py-3 text-sm font-medium text-white shadow-lg shadow-violet-600/25 transition-all duration-200 hover:bg-violet-500 hover:shadow-violet-500/40 hover:scale-[1.02] disabled:opacity-50">
-            {loading ? "Creating account..." : "Create Account"}
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-white/40">
-          Already have an account?{" "}
-          <Link href="/auth/signin" className="text-violet-400 hover:text-violet-300 transition-colors">
-            Sign in
+          Don&apos;t have an account?{" "}
+          <Link href="/auth/signup" className="text-violet-400 hover:text-violet-300 transition-colors">
+            Sign up
           </Link>
         </p>
       </div>

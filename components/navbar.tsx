@@ -3,14 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, LayoutDashboard, LogOut, Plus, User } from "lucide-react";
-import { useAuth } from "@/lib/auth/client";
+import { signOut, useSession } from "next-auth/react";
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
+  const { data: session, status } = useSession();
   const pathname = usePathname();
   const isAuthPage = pathname?.startsWith("/auth");
+  const user = session?.user;
 
   if (isAuthPage) return null;
+
+  async function handleLogout() {
+    await signOut({ callbackUrl: "/" });
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0a0f]/80 backdrop-blur-xl">
@@ -45,7 +50,7 @@ export default function Navbar() {
                 <span className="hidden sm:inline max-w-[120px] truncate">{user.email}</span>
               </div>
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/70 transition-all duration-200 hover:bg-red-500/10 hover:text-red-400"
               >
                 <LogOut className="h-4 w-4" />

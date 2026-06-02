@@ -3,14 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
-import { getSession } from "@/lib/auth/server";
+import { auth } from "@/lib/auth";
 import { generateToken, normalizeEmail } from "@/lib/utils";
 
 // ---- Event Actions ----
 
 export async function createEvent(formData: FormData) {
-  const session = await getSession();
-  if (!session) {
+  const session = await auth();
+  if (!session?.user?.id) {
     redirect("/auth/signin");
   }
 
@@ -25,7 +25,7 @@ export async function createEvent(formData: FormData) {
 
   const event = await prisma.event.create({
     data: {
-      ownerUserId: session!.id,
+      ownerUserId: session.user.id,
       title: title.trim(),
       description: description?.trim() || null,
       location: location?.trim() || null,
@@ -38,11 +38,11 @@ export async function createEvent(formData: FormData) {
 }
 
 export async function getMyEvents() {
-  const session = await getSession();
-  if (!session) return [];
+  const session = await auth();
+  if (!session?.user?.id) return [];
 
   const events = await prisma.event.findMany({
-    where: { ownerUserId: session.id },
+    where: { ownerUserId: session.user.id },
     include: {
       rsvps: true,
       invite: true,
@@ -62,13 +62,13 @@ export async function getMyEvents() {
 }
 
 export async function getEventById(eventId: string) {
-  const session = await getSession();
-  if (!session) return null;
+  const session = await auth();
+  if (!session?.user?.id) return null;
 
   const event = await prisma.event.findFirst({
     where: {
       id: eventId,
-      ownerUserId: session.id,
+      ownerUserId: session.user.id,
     },
     include: {
       rsvps: {
@@ -82,15 +82,15 @@ export async function getEventById(eventId: string) {
 }
 
 export async function deleteEvent(eventId: string) {
-  const session = await getSession();
-  if (!session) {
+  const session = await auth();
+  if (!session?.user?.id) {
     redirect("/auth/signin");
   }
 
   await prisma.event.deleteMany({
     where: {
       id: eventId,
-      ownerUserId: session.id,
+      ownerUserId: session.user.id,
     },
   });
 
@@ -101,14 +101,14 @@ export async function deleteEvent(eventId: string) {
 // ---- Invite Actions ----
 
 export async function createInvite(eventId: string) {
-  const session = await getSession();
-  if (!session) {
+  const session = await auth();
+  if (!session?.user?.id) {
     redirect("/auth/signin");
   }
 
   // Verify ownership
   const event = await prisma.event.findFirst({
-    where: { id: eventId, ownerUserId: session.id },
+    where: { id: eventId, ownerUserId: session.user.id },
     include: { invite: true },
   });
 
@@ -123,10 +123,7 @@ export async function createInvite(eventId: string) {
 
   const token = generateToken();
   await prisma.eventInvite.create({
-    data: {
-      eventId,
-      token,
-    },
+    data: { eventId, token },
   });
 
   revalidatePath(`/events/${eventId}`);
@@ -219,12 +216,12 @@ export async function getPublicEvent(eventId: string) {
 }
 
 export async function deleteRsvp(eventId: string, rsvpId: string) {
-  const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   // Verify ownership
   const event = await prisma.event.findFirst({
-    where: { id: eventId, ownerUserId: session.id },
+    where: { id: eventId, ownerUserId: session.user.id },
   });
 
   if (!event) throw new Error("Event not found");
