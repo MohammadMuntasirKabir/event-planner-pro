@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, setSession, clearSession } from "@/lib/auth/server";
 import prisma from "@/lib/prisma";
-import { generateToken, normalizeEmail } from "@/lib/utils";
+import { hashPassword, verifyPassword } from "@/lib/auth/passwords";
+import { normalizeEmail } from "@/lib/utils";
 
-// GET /api/auth/session — return current session
+const COOKIE_NAME = "ep_session";
+
+// GET /api/auth — return current session
 export async function GET() {
   const session = await getSession();
   return NextResponse.json({ user: session });
 }
 
-// POST /api/auth/credentials — sign in with email/password
+// POST /api/auth — sign in with email/password
 export async function POST(request: NextRequest) {
   const { email, password } = await request.json();
 
@@ -31,9 +34,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // In production, use bcrypt. For demo, simple comparison.
-  const validPassword = await verifyPassword(password, user.passwordHash);
-  if (!validPassword) {
+  if (!await verifyPassword(password, user.passwordHash)) {
     return NextResponse.json(
       { error: "Invalid email or password" },
       { status: 401 }
@@ -51,13 +52,20 @@ export async function POST(request: NextRequest) {
   });
 }
 
-// POST /api/auth/register — create account
+// PUT /api/auth — register new account
 export async function PUT(request: NextRequest) {
   const { name, email, password } = await request.json();
 
   if (!email || !password) {
     return NextResponse.json(
       { error: "Email and password are required" },
+      { status: 400 }
+    );
+  }
+
+  if (password.length < 6) {
+    return NextResponse.json(
+      { error: "Password must be at least 6 characters" },
       { status: 400 }
     );
   }
@@ -96,26 +104,8 @@ export async function PUT(request: NextRequest) {
   });
 }
 
-// POST /api/auth/logout — clear session
+// DELETE /api/auth — sign out
 export async function DELETE() {
   await clearSession();
   return NextResponse.json({ success: true });
-}
-
-// ---- Password helpers (use bcrypt in production) ----
-async function hashPassword(password: string): Promise<string> {
-  // Simple hash for demo — replace with bcrypt in production
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + "event-planner-salt");
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function verifyPassword(
-  password: string,
-  hash: string
-): Promise<boolean> {
-  const computed = await hashPassword(password);
-  return computed === hash;
 }

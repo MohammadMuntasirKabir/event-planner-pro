@@ -5,7 +5,7 @@ A full-stack event planning application built with Next.js 16, React 19, Tailwin
 ## Features
 
 - **Landing Page** — Animated hero section with floating orbs, gradient shifts, scroll-reveal feature cards, and staggered entrance animations
-- **Auth** — Cookie-based sessions with sign up, sign in, and logout
+- **Auth** — Cookie-based sessions with bcrypt password hashing, sign up, sign in, and logout. Legacy SHA-256 hashes auto-detected for backward compatibility.
 - **Dashboard** — Grid of event cards with RSVP count badges (Going/Maybe/Not Going), delete events
 - **Create Events** — Form with title, description, location, and date/time fields
 - **Event Detail** — View event info, generate/share unique invite links, manage attendees
@@ -21,7 +21,7 @@ A full-stack event planning application built with Next.js 16, React 19, Tailwin
 | UI | React 19, Tailwind CSS v4 |
 | Database | Neon Postgres (serverless) |
 | ORM | Prisma 6 with PrismaNeonHttp adapter |
-| Auth | Cookie-based sessions (SHA-256 hashed passwords) |
+| Auth | Cookie-based sessions (bcrypt hashed passwords, httpOnly cookies) |
 | Icons | Lucide React |
 | Testing | Vitest + React Testing Library |
 | Animations | Pure CSS (no JS libraries) |
