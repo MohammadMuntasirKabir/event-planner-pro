@@ -1,13 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { auth } from "@/lib/auth";
 
 export default function SignInPage() {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -23,16 +20,18 @@ export default function SignInPage() {
         email,
         password,
         redirect: false,
+        callbackUrl: "/dashboard",
       });
-
-      if (result?.error) {
+      // Auth.js v5 beta: result has { error?, url?, ok? }
+      // On success, redirect to the target
+      if (result?.url) {
+        window.location.href = result.url;
+      } else if (result?.error) {
         setError(result.error);
-      } else {
-        router.push("/dashboard");
+        setLoading(false);
       }
-    } catch {
-      setError("An unexpected error occurred");
-    } finally {
+    } catch (err: any) {
+      setError(err.message || "Sign in failed");
       setLoading(false);
     }
   }

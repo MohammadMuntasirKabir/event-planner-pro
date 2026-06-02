@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 
 export default function SignUpPage() {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
@@ -30,21 +28,22 @@ export default function SignUpPage() {
         throw new Error(data.error || "Registration failed");
       }
 
-      // Sign in with the new credentials
+      // Sign in with the new credentials via Auth.js
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
+        callbackUrl: "/dashboard",
       });
 
       if (result?.error) {
         setError(result.error);
-      } else {
-        router.push("/dashboard");
+        setLoading(false);
+      } else if (result?.url) {
+        window.location.href = result.url;
       }
     } catch (err: any) {
       setError(err.message || "Registration failed");
-    } finally {
       setLoading(false);
     }
   }
