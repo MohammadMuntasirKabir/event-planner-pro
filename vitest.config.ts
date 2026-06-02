@@ -9,10 +9,11 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.test.{ts,tsx}"],
+    testTimeout: 30000, // 30s for Neon DB tests
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
-      include: ["lib/utils.ts", "components/**/*.tsx"],
+      include: ["lib/utils.ts", "lib/actions/events.ts", "components/**/*.tsx"],
     },
   },
   resolve: {
