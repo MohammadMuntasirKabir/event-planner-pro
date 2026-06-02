@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { LinkIcon, Copy, Check, Trash2, Users, Mail, Clock } from "lucide-react";
 import type { RsvpStatus } from "@prisma/client";
 
@@ -30,9 +30,16 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const inviteUrl = inviteToken
-    ? `${window.location.origin}/invite/${inviteToken}`
-    : "";
+  const [inviteUrl, setInviteUrl] = useState("");
+
+  // Build invite URL client-side only (window is not available during SSR)
+  useEffect(() => {
+    if (inviteToken) {
+      setInviteUrl(`${window.location.origin}/invite/${inviteToken}`);
+    } else {
+      setInviteUrl("");
+    }
+  }, [inviteToken]);
 
   async function handleCreateInvite() {
     setInviteError(null);
