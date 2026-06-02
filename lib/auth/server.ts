@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 const COOKIE_NAME = "ep_session";
 
@@ -28,11 +29,23 @@ export async function setSession(user: SessionUser): Promise<void> {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    maxAge: 60 * 60 * 24 * 30,
   });
 }
 
 export async function clearSession(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);
+}
+
+/**
+ * Sign in helper: set session cookie then redirect.
+ * Must be called from a Server Action / Server Component.
+ */
+export async function signIn(
+  user: SessionUser,
+  redirectTo: string = "/dashboard"
+): Promise<never> {
+  await setSession(user);
+  redirect(redirectTo);
 }

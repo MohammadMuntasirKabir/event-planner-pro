@@ -1,15 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession, setSession, clearSession } from "@/lib/auth/server";
+import { cookies } from "next/headers";
 import prisma from "@/lib/prisma";
-import { generateToken, normalizeEmail } from "@/lib/utils";
+import { normalizeEmail } from "@/lib/utils";
 
-// GET /api/auth/session — return current session
-export async function GET() {
-  const session = await getSession();
-  return NextResponse.json({ user: session });
+const COOKIE_NAME = "ep_session";
+
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + "event-planner-salt");
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// POST /api/auth/credentials — sign in with email/password
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  const computed = await hashPassword(password);
+  return computed === hash;
+}
+
+function createUserResponse(userId: string, email_: string, name: string | null, redirectTo: string) {
+  const userData = { id: userId, email: email_, name };
+  const response = NextResponse.json({ user: userData }, { status: 200 });
+
+  // Set session cookie directly on the response
+  response.cookies.set(COOKIE_NAME, JSON.stringify(userData), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+
+  // Redirect header
+  response.headers.set("Location", redirectTo);
+  response.headers.set("X-Auth-Success", "true");
+
+  return response;
+}
+
+// POST /api/auth — sign in
 export async function POST(request: NextRequest) {
   const { email, password } = await request.json();
 
@@ -31,7 +60,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // In production, use bcrypt. For demo, simple comparison.
   const validPassword = await verifyPassword(password, user.passwordHash);
   if (!validPassword) {
     return NextResponse.json(
@@ -40,18 +68,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  await setSession({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-  });
-
-  return NextResponse.json({
-    user: { id: user.id, email: user.email, name: user.name },
-  });
+  return createUserResponse(user.id, user.email, user.name, "/dashboard");
 }
 
-// POST /api/auth/register — create account
+// PUT /api/auth — register
 export async function PUT(request: NextRequest) {
   const { name, email, password } = await request.json();
 
@@ -76,7 +96,6 @@ export async function PUT(request: NextRequest) {
   }
 
   const passwordHash = await hashPassword(password);
-
   const user = await prisma.user.create({
     data: {
       email: emailNorm,
@@ -85,37 +104,26 @@ export async function PUT(request: NextRequest) {
     },
   });
 
-  await setSession({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-  });
-
-  return NextResponse.json({
-    user: { id: user.id, email: user.email, name: user.name },
-  });
+  return createUserResponse(user.id, user.email, user.name, "/dashboard");
 }
 
-// POST /api/auth/logout — clear session
+// GET /api/auth/session — return current session
+export async function GET() {
+  const cookieStore = await cookies();
+  const session = cookieStore.get(COOKIE_NAME);
+  if (!session?.value) {
+    return NextResponse.json({ user: null });
+  }
+  try {
+    return NextResponse.json({ user: JSON.parse(session.value) });
+  } catch {
+    return NextResponse.json({ user: null });
+  }
+}
+
+// DELETE /api/auth — logout
 export async function DELETE() {
-  await clearSession();
-  return NextResponse.json({ success: true });
-}
-
-// ---- Password helpers (use bcrypt in production) ----
-async function hashPassword(password: string): Promise<string> {
-  // Simple hash for demo — replace with bcrypt in production
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + "event-planner-salt");
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function verifyPassword(
-  password: string,
-  hash: string
-): Promise<boolean> {
-  const computed = await hashPassword(password);
-  return computed === hash;
+  const response = NextResponse.json({ success: true });
+  response.cookies.delete(COOKIE_NAME);
+  return response;
 }
