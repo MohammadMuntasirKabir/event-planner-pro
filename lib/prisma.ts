@@ -2,11 +2,10 @@
  * Prisma client configured for Neon Postgres.
  *
  * Uses PrismaNeonHttp adapter which connects via Neon's HTTPS endpoint —
- * no WebSocket or TCP port 5432 required. DDL operations (db push / migrate)
- * are not supported via HTTP; tables are created via Neon's SQL HTTP API.
+ * no WebSocket or TCP port 5432 required.
  *
- * channel_binding=require is stripped from the connection string because
- * the Neon HTTP driver handles TLS via sslmode=require.
+ * channel_binding=require is stripped because the HTTP driver handles
+ * TLS via sslmode=require.
  */
 
 import { PrismaNeonHttp } from "@prisma/adapter-neon";
@@ -22,12 +21,7 @@ function createPrismaClient() {
     throw new Error("DATABASE_URL is not set.");
   }
 
-  // Strip channel_binding — the Neon HTTP driver doesn't support it;
-  // sslmode=require already enforces TLS.
   const connectionString = rawUrl.replace(/&?channel_binding=[^&]*/, "");
-
-  // PrismaNeonHttp(connectionString, options?)
-  // Internally calls neon(connectionString) which uses HTTPS
   const adapter = new PrismaNeonHttp(connectionString, {});
   return new PrismaClient({
     adapter,

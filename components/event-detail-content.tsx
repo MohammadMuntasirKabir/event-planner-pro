@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { LinkIcon, Copy, Check, Trash2, Users, Mail, Clock } from "lucide-react";
 import type { RsvpStatus } from "@prisma/client";
 
@@ -27,34 +27,18 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
   const [isPending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
   const [inviteToken, setInviteToken] = useState(event.invite?.token || null);
-  const [inviteError, setInviteError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const [inviteUrl, setInviteUrl] = useState("");
-
-  // Build invite URL client-side only (window is not available during SSR)
-  useEffect(() => {
-    if (inviteToken) {
-      setInviteUrl(`${window.location.origin}/invite/${inviteToken}`);
-    } else {
-      setInviteUrl("");
-    }
-  }, [inviteToken]);
+  const inviteUrl = inviteToken
+    ? `${window.location.origin}/invite/${inviteToken}`
+    : "";
 
   async function handleCreateInvite() {
-    setInviteError(null);
     startTransition(async () => {
-      try {
-        const res = await fetch(`/api/events/${event.id}/invite`, { method: "POST" });
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || "Failed to generate invite link");
-        }
-        if (data.token) {
-          setInviteToken(data.token);
-        }
-      } catch (err: any) {
-        setInviteError(err.message || "Failed to generate invite link");
+      const res = await fetch(`/api/events/${event.id}/invite`, { method: "POST" });
+      const data = await res.json();
+      if (data.token) {
+        setInviteToken(data.token);
       }
     });
   }
@@ -151,9 +135,6 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
             <LinkIcon className="h-4 w-4" />
             {isPending ? "Generating..." : "Generate Invite Link"}
           </button>
-        )}
-        {inviteError && (
-          <p className="mt-2 text-sm text-red-400">{inviteError}</p>
         )}
       </div>
 

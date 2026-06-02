@@ -27,17 +27,18 @@ describe("HeroSection", () => {
     expect(screen.getByText(/Plan events that/)).toBeTruthy();
   });
 
-  it("renders CTA buttons", () => {
+  it("renders CTA button", () => {
     render(<HeroSection />);
     expect(screen.getByText("Get Started Free")).toBeTruthy();
-    expect(screen.getByText("View Demo")).toBeTruthy();
+    expect(screen.getByText("No credit card required")).toBeTruthy();
   });
 
-  it("renders stats", () => {
+  it("renders trust signals", () => {
     render(<HeroSection />);
-    expect(screen.getByText("Free")).toBeTruthy();
-    expect(screen.getByText("1-Click")).toBeTruthy();
-    expect(screen.getByText("Real-time")).toBeTruthy();
+    expect(screen.getByText("Free forever")).toBeTruthy();
+    expect(screen.getByText("No credit card")).toBeTruthy();
+    expect(screen.getByText("1-click setup")).toBeTruthy();
+    expect(screen.getByText("Real-time updates")).toBeTruthy();
   });
 });
 
