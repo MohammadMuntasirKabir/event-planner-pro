@@ -29,7 +29,7 @@ export function AuthProvider({ children, initialUser }: { children: ReactNode; i
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/session");
+      const res = await fetch("/api/auth");
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
@@ -44,8 +44,13 @@ export function AuthProvider({ children, initialUser }: { children: ReactNode; i
   }, []);
 
   const logout = useCallback(async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setUser(null);
+    try {
+      await fetch("/api/auth", { method: "DELETE" });
+    } catch {
+      // ignore network errors
+    } finally {
+      setUser(null);
+    }
   }, []);
 
   return (

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { normalizeEmail } from "@/lib/utils";
 
@@ -18,23 +19,29 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
   return computed === hash;
 }
 
-function createUserResponse(userId: string, email_: string, name: string | null, redirectTo: string) {
-  const userData = { id: userId, email: email_, name };
-  const response = NextResponse.json({ user: userData }, { status: 200 });
-
-  // Set session cookie directly on the response
-  response.cookies.set(COOKIE_NAME, JSON.stringify(userData), {
+/** Build a JSON response with the session cookie set */
+function respondWithSession(user: { id: string; email: string; name: string | null }, status = 200) {
+  const response = NextResponse.json({ user }, { status });
+  response.cookies.set(COOKIE_NAME, JSON.stringify(user), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
   });
+  return response;
+}
 
-  // Redirect header
-  response.headers.set("Location", redirectTo);
-  response.headers.set("X-Auth-Success", "true");
-
+/** Build a response with the session cookie cleared */
+function respondCleared(message = "Signed out") {
+  const response = NextResponse.json({ success: true, message });
+  response.cookies.set(COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
   return response;
 }
 
@@ -43,10 +50,7 @@ export async function POST(request: NextRequest) {
   const { email, password } = await request.json();
 
   if (!email || !password) {
-    return NextResponse.json(
-      { error: "Email and password are required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
   }
 
   const user = await prisma.user.findUnique({
@@ -54,21 +58,14 @@ export async function POST(request: NextRequest) {
   });
 
   if (!user) {
-    return NextResponse.json(
-      { error: "Invalid email or password" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
-  const validPassword = await verifyPassword(password, user.passwordHash);
-  if (!validPassword) {
-    return NextResponse.json(
-      { error: "Invalid email or password" },
-      { status: 401 }
-    );
+  if (!await verifyPassword(password, user.passwordHash)) {
+    return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
-  return createUserResponse(user.id, user.email, user.name, "/dashboard");
+  return respondWithSession({ id: user.id, email: user.email, name: user.name });
 }
 
 // PUT /api/auth — register
@@ -76,44 +73,28 @@ export async function PUT(request: NextRequest) {
   const { name, email, password } = await request.json();
 
   if (!email || !password) {
-    return NextResponse.json(
-      { error: "Email and password are required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
   }
 
   const emailNorm = normalizeEmail(email);
 
-  const existing = await prisma.user.findUnique({
-    where: { email: emailNorm },
-  });
-
-  if (existing) {
-    return NextResponse.json(
-      { error: "Email already registered" },
-      { status: 409 }
-    );
+  if (await prisma.user.findUnique({ where: { email: emailNorm } })) {
+    return NextResponse.json({ error: "Email already registered" }, { status: 409 });
   }
 
   const passwordHash = await hashPassword(password);
   const user = await prisma.user.create({
-    data: {
-      email: emailNorm,
-      name: name?.trim() || null,
-      passwordHash,
-    },
+    data: { email: emailNorm, name: name?.trim() || null, passwordHash },
   });
 
-  return createUserResponse(user.id, user.email, user.name, "/dashboard");
+  return respondWithSession({ id: user.id, email: user.email, name: user.name });
 }
 
-// GET /api/auth/session — return current session
+// GET /api/auth — return current session
 export async function GET() {
   const cookieStore = await cookies();
   const session = cookieStore.get(COOKIE_NAME);
-  if (!session?.value) {
-    return NextResponse.json({ user: null });
-  }
+  if (!session?.value) return NextResponse.json({ user: null });
   try {
     return NextResponse.json({ user: JSON.parse(session.value) });
   } catch {
@@ -121,9 +102,7 @@ export async function GET() {
   }
 }
 
-// DELETE /api/auth — logout
+// DELETE /api/auth — sign out (clear cookie)
 export async function DELETE() {
-  const response = NextResponse.json({ success: true });
-  response.cookies.delete(COOKIE_NAME);
-  return response;
+  return respondCleared();
 }
