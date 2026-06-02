@@ -22,9 +22,9 @@ export default async function SignUpPage() {
     }
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/auth/register`,
+      `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/auth`,
       {
-        method: "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       }

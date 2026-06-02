@@ -18,7 +18,7 @@ export default async function SignInPage() {
     }
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/auth/credentials`,
+      `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/auth`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
