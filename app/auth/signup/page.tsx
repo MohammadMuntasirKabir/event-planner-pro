@@ -43,8 +43,8 @@ export default function SignUpPage() {
       }
 
       // Cookie is set by the browser from the Set-Cookie header
-      // Force server re-render so layout reads the new cookie, then redirect
-      router.refresh();
+      // Refresh auth context so Navbar shows logged-in state immediately
+      await refresh();
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
