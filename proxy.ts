@@ -1,19 +1,21 @@
-import { auth } from "@/lib/auth";
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export default async function proxy(req: NextRequest) {
-  const session = await auth();
+const isProtectedRoute = createRouteMatcher([
+  "/dashboard(.*)",
+  "/events(.*)",
+]);
 
-  if (!session) {
-    const url = new URL("/auth/signin", req.url);
-    url.searchParams.set("next", req.nextUrl.pathname);
-    return NextResponse.redirect(url);
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) {
+    await auth.protect();
   }
-
-  return NextResponse.next();
-}
+});
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/events/:path*"],
+  matcher: [
+    // Skip Next.js internals and static files
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|gif|svg|png|ico|ttf|woff2?|map)).*)",
+    // Always run for API routes
+    "/(api|trpc)(.*)",
+  ],
 };

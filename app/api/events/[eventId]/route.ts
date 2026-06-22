@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
 type Params = Promise<{ eventId: string }>;
@@ -9,8 +9,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Params }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const { userId } = await auth();
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -18,7 +18,7 @@ export async function DELETE(
 
   // Verify ownership before deleting
   const event = await db.event.findFirst({
-    where: { id: eventId, ownerUserId: session.user.id },
+    where: { id: eventId, ownerUserId: userId },
   });
 
   if (!event) {

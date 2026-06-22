@@ -43,3 +43,12 @@ next-env.d.ts
 
 # prisma generated
 /app/generated/prisma
+
+# clerk configuration (can include secrets)
+/.clerk/
+
+# Build output
+dist/
+.next/
+out/
+

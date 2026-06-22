@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
 import { getMyEvents } from "@/lib/actions/events";
-import { auth } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import DashboardContent from "@/components/dashboard-content";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
 export default async function DashboardPage() {
-  const session = await auth();
-  if (!session?.user) {
+  const { userId } = await auth();
+  if (!userId) {
     redirect("/auth/signin");
   }
 

@@ -3,18 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, LayoutDashboard, LogOut, Plus, User } from "lucide-react";
-import { signOut, useSession } from "next-auth/react";
+import { useUser, useClerk } from "@clerk/nextjs";
 
 export default function Navbar() {
-  const { data: session, status } = useSession();
+  const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const pathname = usePathname();
   const isAuthPage = pathname?.startsWith("/auth");
-  const user = session?.user;
 
   if (isAuthPage) return null;
 
   async function handleLogout() {
-    await signOut({ callbackUrl: "/" });
+    await signOut({ redirectUrl: "/" });
   }
 
   return (
@@ -28,7 +28,7 @@ export default function Navbar() {
         </Link>
 
         <nav className="flex items-center gap-1">
-          {user ? (
+          {isLoaded && user ? (
             <>
               <Link
                 href="/dashboard"
@@ -47,7 +47,7 @@ export default function Navbar() {
               <div className="mx-2 h-4 w-px bg-white/10" />
               <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/60">
                 <User className="h-4 w-4" />
-                <span className="hidden sm:inline max-w-[120px] truncate">{user.email}</span>
+                <span className="hidden sm:inline max-w-[120px] truncate">{user.primaryEmailAddress?.emailAddress ?? user.emailAddresses[0]?.emailAddress}</span>
               </div>
               <button
                 onClick={handleLogout}

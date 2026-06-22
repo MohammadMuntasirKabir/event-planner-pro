@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { getEventById } from "@/lib/actions/events";
 import EventDetailContent from "@/components/event-detail-content";
 import Link from "next/link";
@@ -11,9 +11,9 @@ export default async function EventDetailsPage({
   params: Promise<{ eventId: string }>;
 }) {
   const { eventId } = await params;
-  const session = await auth();
+  const { userId } = await auth();
 
-  if (!session?.user) {
+  if (!userId) {
     redirect("/auth/signin");
   }
 

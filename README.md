@@ -1,6 +1,6 @@
 # Event Planner Pro
 
-A full-stack event planning application built with Next.js 16, React 19, Tailwind CSS v4, and Neon Postgres. Create events, share invite links, and track RSVPs in real-time with a polished dark-themed UI and smooth CSS animations.
+A full-stack event planning application built with **Next.js 16**, **React 19**, **Tailwind CSS 4**, and **Neon Postgres**. Create events, share invite links, and track RSVPs in real-time with a polished dark-themed UI and smooth CSS animations.
 
 ## Features
 
@@ -18,13 +18,14 @@ A full-stack event planning application built with Next.js 16, React 19, Tailwin
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 16 (App Router) |
-| UI | React 19, Tailwind CSS v4 |
+| UI | React 19, Tailwind CSS 4 |
 | Database | Neon Postgres (serverless) |
 | ORM | Prisma 6 with PrismaNeonHttp adapter |
 | Auth | Cookie-based sessions (bcrypt hashed passwords, httpOnly cookies) |
 | Icons | Lucide React |
 | Testing | Vitest + React Testing Library |
 | Animations | Pure CSS (no JS libraries) |
+| Language | TypeScript 5 |
 
 ## CSS Animations
 
@@ -57,7 +58,7 @@ npm install
 # Configure environment
 cp .env.example .env
 # Edit .env with your Neon DATABASE_URL:
-# postgresql://user:password@host:5432/dbname?sslmode=require
+# postgresql://user:pass@host:5432/dbname?sslmode=require
 
 # Generate Prisma client
 npx prisma generate
@@ -80,7 +81,7 @@ npm run dev
 
 ```bash
 # All tests
-npm run tests
+npm test
 
 # Watch mode
 npm run test:watch

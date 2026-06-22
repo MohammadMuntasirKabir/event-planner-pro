@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 import { createEvent } from "@/lib/actions/events";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 export default async function NewEventPage() {
-  const session = await auth();
-  if (!session?.user) {
+  const { userId } = await auth();
+  if (!userId) {
     redirect("/auth/signin");
   }
 

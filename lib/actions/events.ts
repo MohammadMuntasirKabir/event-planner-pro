@@ -3,16 +3,53 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { generateToken, normalizeEmail } from "@/lib/utils";
+
+/**
+ * Ensure a local User record exists for the current Clerk user.
+ * Called from actions that require a user record (createEvent, etc.)
+ */
+async function getOrCreateUser() {
+  const { userId } = await auth();
+  if (!userId) {
+    redirect("/auth/signin");
+  }
+
+  // Clerk user IDs are strings (e.g. "user_xxxxx")
+  // Check if a user record already exists
+  let user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    // Fetch user details from Clerk and create local record
+    const client = await clerkClient();
+    const clerkUser = await client.users.getUser(userId);
+
+    const email = clerkUser.primaryEmailAddress?.emailAddress ?? "";
+    const name = clerkUser.firstName
+      ? [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ")
+      : null;
+    const image = clerkUser.imageUrl ?? null;
+
+    user = await prisma.user.create({
+      data: {
+        id: userId,
+        email,
+        name,
+        image,
+      },
+    });
+  }
+
+  return { userId, user };
+}
 
 // ---- Event Actions ----
 
 export async function createEvent(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/auth/signin");
-  }
+  const { userId } = await getOrCreateUser();
 
   const title = formData.get("title") as string;
   const description = (formData.get("description") as string) || null;
@@ -25,7 +62,7 @@ export async function createEvent(formData: FormData) {
 
   const event = await prisma.event.create({
     data: {
-      ownerUserId: session.user.id,
+      ownerUserId: userId,
       title: title.trim(),
       description: description?.trim() || null,
       location: location?.trim() || null,
@@ -38,11 +75,11 @@ export async function createEvent(formData: FormData) {
 }
 
 export async function getMyEvents() {
-  const session = await auth();
-  if (!session?.user?.id) return [];
+  const { userId } = await auth();
+  if (!userId) return [];
 
   const events = await prisma.event.findMany({
-    where: { ownerUserId: session.user.id },
+    where: { ownerUserId: userId },
     include: {
       rsvps: true,
       invite: true,
@@ -62,13 +99,13 @@ export async function getMyEvents() {
 }
 
 export async function getEventById(eventId: string) {
-  const session = await auth();
-  if (!session?.user?.id) return null;
+  const { userId } = await auth();
+  if (!userId) return null;
 
   const event = await prisma.event.findFirst({
     where: {
       id: eventId,
-      ownerUserId: session.user.id,
+      ownerUserId: userId,
     },
     include: {
       rsvps: {
@@ -82,15 +119,12 @@ export async function getEventById(eventId: string) {
 }
 
 export async function deleteEvent(eventId: string) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/auth/signin");
-  }
+  const { userId } = await getOrCreateUser();
 
   await prisma.event.deleteMany({
     where: {
       id: eventId,
-      ownerUserId: session.user.id,
+      ownerUserId: userId,
     },
   });
 
@@ -101,14 +135,11 @@ export async function deleteEvent(eventId: string) {
 // ---- Invite Actions ----
 
 export async function createInvite(eventId: string) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/auth/signin");
-  }
+  const { userId } = await getOrCreateUser();
 
   // Verify ownership
   const event = await prisma.event.findFirst({
-    where: { id: eventId, ownerUserId: session.user.id },
+    where: { id: eventId, ownerUserId: userId },
     include: { invite: true },
   });
 
@@ -216,12 +247,12 @@ export async function getPublicEvent(eventId: string) {
 }
 
 export async function deleteRsvp(eventId: string, rsvpId: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
 
   // Verify ownership
   const event = await prisma.event.findFirst({
-    where: { id: eventId, ownerUserId: session.user.id },
+    where: { id: eventId, ownerUserId: userId },
   });
 
   if (!event) throw new Error("Event not found");
