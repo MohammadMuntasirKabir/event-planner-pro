@@ -29,11 +29,6 @@ export default function SignInPage() {
           },
           variables: {
             colorPrimary: "#7c3aed",
-            colorText: "white",
-            colorTextSecondary: "rgba(255,255,255,0.5)",
-            colorBackground: "transparent",
-            colorInputBackground: "rgba(255,255,255,0.05)",
-            colorInputText: "white",
             borderRadius: "0.5rem",
           },
         }}

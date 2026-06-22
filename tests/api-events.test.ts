@@ -1,9 +1,15 @@
+import { NextRequest } from "next/server";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock Clerk auth
 const mockAuth = vi.fn();
 vi.mock("@clerk/nextjs/server", () => ({
   auth: mockAuth,
+}));
+
+// Mock rate limiter to always allow
+vi.mock("@/lib/rate-limit", () => ({
+  rateLimit: () => ({ allowed: true, remaining: 29, resetAt: Date.now() + 60000 }),
 }));
 
 // Mock the db module (used by API routes)
@@ -44,17 +50,16 @@ vi.mock("@/lib/utils", () => ({
   normalizeEmail: (email: string) => email.trim().toLowerCase(),
 }));
 
-function makeRequest(body?: any, method = "DELETE") {
+function makeRequest(body?: unknown, method = "DELETE") {
   return {
     method,
-    json: body ? async () => body : undefined,
-  } as any;
+    json: body ? async () => body : async () => ({}),
+    headers: new Map([["x-forwarded-for", "127.0.0.1"]]),
+  } as unknown as NextRequest;
 }
 
 function makeParams(eventId: string, rsvpId?: string) {
-  return Promise.resolve(
-    rsvpId ? { eventId, rsvpId } : { eventId }
-  );
+  return Promise.resolve({ eventId, rsvpId: rsvpId ?? "" });
 }
 
 describe("DELETE /api/events/[eventId]", () => {

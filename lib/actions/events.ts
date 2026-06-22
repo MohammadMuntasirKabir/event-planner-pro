@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { generateToken, normalizeEmail } from "@/lib/utils";
+import { validateCreateEvent, validateSubmitRsvp } from "@/lib/validations";
 
 /**
  * Ensure a local User record exists for the current Clerk user.
@@ -51,21 +52,20 @@ async function getOrCreateUser() {
 export async function createEvent(formData: FormData) {
   const { userId } = await getOrCreateUser();
 
-  const title = formData.get("title") as string;
-  const description = (formData.get("description") as string) || null;
-  const location = (formData.get("location") as string) || null;
-  const eventDate = (formData.get("eventDate") as string) || null;
-
-  if (!title?.trim()) {
-    throw new Error("Title is required");
+  const validation = validateCreateEvent(formData);
+  if (!validation.success) {
+    const messages = Object.values(validation.errors).join("; ");
+    throw new Error(messages);
   }
+
+  const { title, description, location, eventDate } = validation.data;
 
   const event = await prisma.event.create({
     data: {
       ownerUserId: userId,
-      title: title.trim(),
-      description: description?.trim() || null,
-      location: location?.trim() || null,
+      title,
+      description,
+      location,
       eventDate: eventDate ? new Date(eventDate) : null,
     },
   });
@@ -163,15 +163,13 @@ export async function createInvite(eventId: string) {
 // ---- RSVP Actions ----
 
 export async function submitRsvp(formData: FormData) {
-  const eventId = formData.get("eventId") as string;
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const status = formData.get("status") as string;
-  const inviteToken = (formData.get("inviteToken") as string) || null;
-
-  if (!eventId || !name?.trim() || !email?.trim() || !status) {
-    throw new Error("All fields are required");
+  const validation = validateSubmitRsvp(formData);
+  if (!validation.success) {
+    const messages = Object.values(validation.errors).join("; ");
+    throw new Error(messages);
   }
+
+  const { eventId, name, email, status, inviteToken } = validation.data;
 
   const emailNormalized = normalizeEmail(email);
 

@@ -411,7 +411,7 @@ describe("submitRsvp", () => {
       email: "john@example.com",
       status: "going",
     });
-    await expect(submitRsvp(fd)).rejects.toThrow("All fields are required");
+    await expect(submitRsvp(fd)).rejects.toThrow("Event ID is required");
   });
 
   it("throws when name is missing", async () => {
@@ -421,7 +421,7 @@ describe("submitRsvp", () => {
       email: "john@example.com",
       status: "going",
     });
-    await expect(submitRsvp(fd)).rejects.toThrow("All fields are required");
+    await expect(submitRsvp(fd)).rejects.toThrow("Name is required");
   });
 
   it("throws when email is missing", async () => {
@@ -431,7 +431,7 @@ describe("submitRsvp", () => {
       name: "John",
       status: "going",
     });
-    await expect(submitRsvp(fd)).rejects.toThrow("All fields are required");
+    await expect(submitRsvp(fd)).rejects.toThrow("Email is required");
   });
 
   it("throws when status is missing", async () => {
@@ -441,7 +441,7 @@ describe("submitRsvp", () => {
       name: "John",
       email: "john@example.com",
     });
-    await expect(submitRsvp(fd)).rejects.toThrow("All fields are required");
+    await expect(submitRsvp(fd)).rejects.toThrow("RSVP status is required");
   });
 
   it("throws when event not found", async () => {
