@@ -11,11 +11,12 @@ export default async function EventDetailsPage({
   params: Promise<{ eventId: string }>;
 }) {
   const { eventId } = await params;
-  const { userId } = await auth();
-
-  if (!userId) {
+  const session = await auth();
+  if (!session?.user) {
     redirect("/auth/signin");
   }
+
+  const userId = session.user.id;
 
   const event = await getEventById(eventId);
   if (!event) {
