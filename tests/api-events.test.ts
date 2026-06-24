@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock Clerk auth
+// Mock NextAuth
 const mockAuth = vi.fn();
-vi.mock("@clerk/nextjs/server", () => ({
+vi.mock("@/auth", () => ({
   auth: mockAuth,
 }));
 
@@ -68,7 +68,7 @@ describe("DELETE /api/events/[eventId]", () => {
   });
 
   it("returns 401 when user is not authenticated", async () => {
-    mockAuth.mockResolvedValue({ userId: null });
+    mockAuth.mockResolvedValue({ user: null });
 
     const { DELETE } = await import(
       "@/app/api/events/[eventId]/route"
@@ -83,7 +83,7 @@ describe("DELETE /api/events/[eventId]", () => {
   });
 
   it("returns 404 when event not found", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockDb.event.findFirst.mockResolvedValue(null);
 
     const { DELETE } = await import(
@@ -99,7 +99,7 @@ describe("DELETE /api/events/[eventId]", () => {
   });
 
   it("returns 404 when user does not own the event", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockDb.event.findFirst.mockResolvedValue(null);
 
     const { DELETE } = await import(
@@ -113,7 +113,7 @@ describe("DELETE /api/events/[eventId]", () => {
   });
 
   it("deletes event and returns success when user owns it", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockDb.event.findFirst.mockResolvedValue({
       id: "evt-1",
       ownerUserId: "user-1",
@@ -136,7 +136,7 @@ describe("DELETE /api/events/[eventId]", () => {
   });
 
   it("verifies ownership query uses correct where clause", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockDb.event.findFirst.mockResolvedValue({
       id: "evt-1",
       ownerUserId: "user-1",
@@ -163,7 +163,7 @@ describe("DELETE /api/events/[eventId]/rsvps/[rsvpId]", () => {
   });
 
   it("returns 401 when user is not authenticated", async () => {
-    mockAuth.mockResolvedValue({ userId: null });
+    mockAuth.mockResolvedValue({ user: null });
 
     const { DELETE } = await import(
       "@/app/api/events/[eventId]/rsvps/[rsvpId]/route"
@@ -178,7 +178,7 @@ describe("DELETE /api/events/[eventId]/rsvps/[rsvpId]", () => {
   });
 
   it("returns 404 when event not found or not owned", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockDb.event.findFirst.mockResolvedValue(null);
 
     const { DELETE } = await import(
@@ -194,7 +194,7 @@ describe("DELETE /api/events/[eventId]/rsvps/[rsvpId]", () => {
   });
 
   it("deletes RSVP and returns success when user owns event", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockDb.event.findFirst.mockResolvedValue({
       id: "evt-1",
       ownerUserId: "user-1",
@@ -217,7 +217,7 @@ describe("DELETE /api/events/[eventId]/rsvps/[rsvpId]", () => {
   });
 
   it("verifies ownership query uses correct where clause", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockDb.event.findFirst.mockResolvedValue({
       id: "evt-1",
       ownerUserId: "user-1",
@@ -244,7 +244,7 @@ describe("POST /api/events/[eventId]/invite", () => {
   });
 
   it("returns 401 when user is not authenticated", async () => {
-    mockAuth.mockResolvedValue({ userId: null });
+    mockAuth.mockResolvedValue({ user: null });
 
     const { POST } = await import(
       "@/app/api/events/[eventId]/invite/route"
@@ -259,7 +259,7 @@ describe("POST /api/events/[eventId]/invite", () => {
   });
 
   it("returns 404 when event not found", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrisma.event.findFirst.mockResolvedValue(null);
 
     const { POST } = await import(
@@ -275,7 +275,7 @@ describe("POST /api/events/[eventId]/invite", () => {
   });
 
   it("returns existing token if invite already exists", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrisma.event.findFirst.mockResolvedValue({
       id: "evt-1",
       ownerUserId: "user-1",
@@ -297,7 +297,7 @@ describe("POST /api/events/[eventId]/invite", () => {
   });
 
   it("creates new invite when none exists", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrisma.event.findFirst.mockResolvedValue({
       id: "evt-1",
       ownerUserId: "user-1",
@@ -324,7 +324,7 @@ describe("POST /api/events/[eventId]/invite", () => {
   });
 
   it("returns 404 when user does not own the event", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrisma.event.findFirst.mockResolvedValue(null);
 
     const { POST } = await import(

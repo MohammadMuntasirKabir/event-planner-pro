@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { createEvent } from "@/lib/actions/events";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";

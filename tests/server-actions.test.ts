@@ -7,8 +7,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockAuth = vi.fn();
 const mockClerkClient = vi.fn();
 const mockGetUser = vi.fn();
-
-vi.mock("@clerk/nextjs/server", () => ({
+// Mock NextAuth
+vi.mock("@/auth", () => ({
   auth: mockAuth,
   clerkClient: mockClerkClient,
 }));
@@ -75,7 +75,7 @@ function makeFormData(entries: Record<string, string>): FormData {
 describe("createEvent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrismaUser.findUnique.mockResolvedValue({ id: "user-1", email: "test@test.com" });
   });
 
@@ -164,7 +164,7 @@ describe("createEvent", () => {
   });
 
   it("redirects to signin when not authenticated", async () => {
-    mockAuth.mockResolvedValue({ userId: null });
+    mockAuth.mockResolvedValue({ user: null });
 
     const { createEvent } = await import("@/lib/actions/events");
     const fd = makeFormData({ title: "Test" });
@@ -183,14 +183,14 @@ describe("getMyEvents", () => {
   });
 
   it("returns empty array when not authenticated", async () => {
-    mockAuth.mockResolvedValue({ userId: null });
+    mockAuth.mockResolvedValue({ user: null });
     const { getMyEvents } = await import("@/lib/actions/events");
     const result = await getMyEvents();
     expect(result).toEqual([]);
   });
 
   it("returns events with RSVP counts", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrismaEvent.findMany.mockResolvedValue([
       {
         id: "evt-1",
@@ -222,7 +222,7 @@ describe("getMyEvents", () => {
   });
 
   it("returns events ordered by createdAt desc", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrismaEvent.findMany.mockResolvedValue([]);
 
     const { getMyEvents } = await import("@/lib/actions/events");
@@ -236,7 +236,7 @@ describe("getMyEvents", () => {
   });
 
   it("returns empty RSVP counts when no RSVPs", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrismaEvent.findMany.mockResolvedValue([
       {
         id: "evt-1",
@@ -264,14 +264,14 @@ describe("getEventById", () => {
   });
 
   it("returns null when not authenticated", async () => {
-    mockAuth.mockResolvedValue({ userId: null });
+    mockAuth.mockResolvedValue({ user: null });
     const { getEventById } = await import("@/lib/actions/events");
     const result = await getEventById("evt-1");
     expect(result).toBeNull();
   });
 
   it("returns event with RSVPs and invite", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     const mockEvent = {
       id: "evt-1",
       title: "Test Event",
@@ -286,7 +286,7 @@ describe("getEventById", () => {
   });
 
   it("returns null when event not found", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrismaEvent.findFirst.mockResolvedValue(null);
 
     const { getEventById } = await import("@/lib/actions/events");
@@ -295,7 +295,7 @@ describe("getEventById", () => {
   });
 
   it("queries with both id and ownerUserId", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrismaEvent.findFirst.mockResolvedValue(null);
 
     const { getEventById } = await import("@/lib/actions/events");
@@ -312,7 +312,7 @@ describe("getEventById", () => {
 describe("deleteEvent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrismaUser.findUnique.mockResolvedValue({ id: "user-1", email: "test@test.com" });
   });
 
@@ -331,7 +331,7 @@ describe("deleteEvent", () => {
   });
 
   it("redirects to signin when not authenticated", async () => {
-    mockAuth.mockResolvedValue({ userId: null });
+    mockAuth.mockResolvedValue({ user: null });
 
     const { deleteEvent } = await import("@/lib/actions/events");
 
@@ -346,7 +346,7 @@ describe("deleteEvent", () => {
 describe("createInvite", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrismaUser.findUnique.mockResolvedValue({ id: "user-1", email: "test@test.com" });
   });
 
@@ -396,7 +396,7 @@ describe("createInvite", () => {
 describe("submitRsvp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrismaEvent.findUnique.mockResolvedValue({
       id: "evt-1",
       invite: { id: "inv-1", token: "valid-token" },
@@ -611,13 +611,13 @@ describe("deleteRsvp", () => {
   });
 
   it("throws when not authenticated", async () => {
-    mockAuth.mockResolvedValue({ userId: null });
+    mockAuth.mockResolvedValue({ user: null });
     const { deleteRsvp } = await import("@/lib/actions/events");
     await expect(deleteRsvp("evt-1", "rsvp-1")).rejects.toThrow("Unauthorized");
   });
 
   it("throws when event not found or not owned", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrismaEvent.findFirst.mockResolvedValue(null);
 
     const { deleteRsvp } = await import("@/lib/actions/events");
@@ -625,7 +625,7 @@ describe("deleteRsvp", () => {
   });
 
   it("deletes RSVP when user owns event", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-1" });
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } });
     mockPrismaEvent.findFirst.mockResolvedValue({ id: "evt-1", ownerUserId: "user-1" });
     mockPrismaEventRsvp.delete.mockResolvedValue({ id: "rsvp-1" });
 
@@ -644,27 +644,15 @@ describe("getOrCreateUser", () => {
     vi.clearAllMocks();
   });
 
-  it("creates local user from Clerk when not exists", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-new" });
+  it("creates local user from session when not exists", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-new", email: "newuser@example.com", name: "New User" } });
     mockPrismaUser.findUnique.mockResolvedValue(null);
-    mockClerkClient.mockResolvedValue({
-      users: {
-        getUser: mockGetUser.mockResolvedValue({
-          primaryEmailAddress: { emailAddress: "newuser@example.com" },
-          firstName: "New",
-          lastName: "User",
-          imageUrl: "https://img.com/avatar.png",
-        }),
-      },
-    });
     mockPrismaUser.create.mockResolvedValue({
       id: "user-new",
       email: "newuser@example.com",
       name: "New User",
-      image: "https://img.com/avatar.png",
     });
 
-    // createEvent triggers getOrCreateUser
     const { createEvent } = await import("@/lib/actions/events");
     mockPrismaEvent.create.mockResolvedValue({ id: "evt-1" });
 
@@ -677,13 +665,12 @@ describe("getOrCreateUser", () => {
         id: "user-new",
         email: "newuser@example.com",
         name: "New User",
-        image: "https://img.com/avatar.png",
       },
     });
   });
 
   it("uses existing user when already in DB", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-existing" });
+    mockAuth.mockResolvedValue({ user: { id: "user-existing" } });
     mockPrismaUser.findUnique.mockResolvedValue({
       id: "user-existing",
       email: "existing@test.com",
@@ -697,27 +684,15 @@ describe("getOrCreateUser", () => {
     } catch {}
 
     expect(mockPrismaUser.create).not.toHaveBeenCalled();
-    expect(mockClerkClient).not.toHaveBeenCalled();
   });
 
-  it("handles user with no name from Clerk", async () => {
-    mockAuth.mockResolvedValue({ userId: "user-noname" });
+  it("handles user with no name from session", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-noname", email: "noname@example.com" } });
     mockPrismaUser.findUnique.mockResolvedValue(null);
-    mockClerkClient.mockResolvedValue({
-      users: {
-        getUser: mockGetUser.mockResolvedValue({
-          primaryEmailAddress: { emailAddress: "noname@example.com" },
-          firstName: null,
-          lastName: null,
-          imageUrl: null,
-        }),
-      },
-    });
     mockPrismaUser.create.mockResolvedValue({
       id: "user-noname",
       email: "noname@example.com",
       name: null,
-      image: null,
     });
 
     const { createEvent } = await import("@/lib/actions/events");
@@ -732,7 +707,6 @@ describe("getOrCreateUser", () => {
         id: "user-noname",
         email: "noname@example.com",
         name: null,
-        image: null,
       },
     });
   });

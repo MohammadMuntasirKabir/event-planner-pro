@@ -3,43 +3,35 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { generateToken, normalizeEmail } from "@/lib/utils";
 import { validateCreateEvent, validateSubmitRsvp } from "@/lib/validations";
 
 /**
- * Ensure a local User record exists for the current Clerk user.
+ * Ensure a local User record exists for the current user.
  * Called from actions that require a user record (createEvent, etc.)
  */
 async function getOrCreateUser() {
-  const { userId } = await auth();
-  if (!userId) {
+  const session = await auth();
+  if (!session?.user) {
     redirect("/auth/signin");
   }
 
-  // Clerk user IDs are strings (e.g. "user_xxxxx")
+  const userId = session.user.id;
+  const email = session.user.email ?? "";
+  const name = session.user.name ?? null;
+
   // Check if a user record already exists
   let user = await prisma.user.findUnique({
     where: { id: userId },
   });
 
   if (!user) {
-    // Fetch user details from Clerk and create local record
-    const client = await clerkClient();
-    const clerkUser = await client.users.getUser(userId);
-
-    const email = clerkUser.primaryEmailAddress?.emailAddress ?? "";
-    const name = clerkUser.firstName
-      ? [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ")
-      : null;
-    const image = clerkUser.imageUrl ?? null;
-
     user = await prisma.user.create({
       data: {
         id: userId,
         email,
         name,
-        image,
       },
     });
   }
@@ -75,7 +67,8 @@ export async function createEvent(formData: FormData) {
 }
 
 export async function getMyEvents() {
-  const { userId } = await auth();
+  const session = await auth();
+  const userId = session?.user?.id;
   if (!userId) return [];
 
   const events = await prisma.event.findMany({
@@ -99,7 +92,8 @@ export async function getMyEvents() {
 }
 
 export async function getEventById(eventId: string) {
-  const { userId } = await auth();
+  const session = await auth();
+  const userId = session?.user?.id;
   if (!userId) return null;
 
   const event = await prisma.event.findFirst({
@@ -245,7 +239,8 @@ export async function getPublicEvent(eventId: string) {
 }
 
 export async function deleteRsvp(eventId: string, rsvpId: string) {
-  const { userId } = await auth();
+  const session = await auth();
+  const userId = session?.user?.id;
   if (!userId) throw new Error("Unauthorized");
 
   // Verify ownership

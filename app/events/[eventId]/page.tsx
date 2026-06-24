@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { getEventById } from "@/lib/actions/events";
 import EventDetailContent from "@/components/event-detail-content";
 import Link from "next/link";

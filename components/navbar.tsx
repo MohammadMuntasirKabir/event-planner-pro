@@ -3,23 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, LayoutDashboard, LogOut, Plus, User } from "lucide-react";
-import { useUser, useClerk } from "@clerk/nextjs";
+import { useSession, signOut } from "next-auth/react";
 
 export default function Navbar() {
-  const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
+  const { data: session, status } = useSession();
+  const user = session?.user;
+  const isLoaded = status !== "loading";
   const pathname = usePathname();
   const isAuthPage = pathname?.startsWith("/auth");
 
   if (isAuthPage) return null;
 
   async function handleLogout() {
-    try {
-      await signOut({ redirectUrl: "/" });
-    } catch {
-      // Clerk may throw if session is already invalid
-      window.location.href = "/";
-    }
+    await signOut({ callbackUrl: "/" });
   }
 
   return (
@@ -59,8 +55,7 @@ export default function Navbar() {
               <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/60">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline max-w-[120px] truncate">
-                  {user.primaryEmailAddress?.emailAddress ??
-                    user.emailAddresses[0]?.emailAddress}
+                  {user?.name ?? user?.email}
                 </span>
               </div>
               <button
