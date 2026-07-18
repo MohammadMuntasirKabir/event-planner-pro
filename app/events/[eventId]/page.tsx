@@ -16,8 +16,6 @@ export default async function EventDetailsPage({
     redirect("/auth/signin");
   }
 
-  const userId = session.user.id;
-
   const event = await getEventById(eventId);
   if (!event) {
     notFound();

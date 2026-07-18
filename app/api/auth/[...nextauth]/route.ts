@@ -50,7 +50,7 @@ export const authOptions = {
     signIn: "/auth/signin",
   },
   callbacks: {
-    async jwt({ token, user }: { token: JWT; user?: any }) {
+    async jwt({ token, user }: { token: JWT; user?: import("next-auth").User }) {
       if (user) {
         token.id = user.id;
       }
@@ -58,7 +58,7 @@ export const authOptions = {
     },
     async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user && token.id) {
-        (session.user as any).id = token.id as string;
+        (session.user as { id?: string }).id = token.id as string;
       }
       return session;
     },

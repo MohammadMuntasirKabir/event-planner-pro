@@ -1,6 +1,5 @@
 import RevealElement from "./animated-card";
 import type { LucideIcon } from "lucide-react";
-import { type ReactNode } from "react";
 
 type Feature = {
   icon: LucideIcon;

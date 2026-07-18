@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import HeroSection from "@/components/hero-section";
 import FeaturesSection from "@/components/features-section";
 import RevealElement from "@/components/animated-card";

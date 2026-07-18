@@ -1,6 +1,6 @@
 // Test setup - mocks for browser APIs not available in jsdom
 
-const g = globalThis as any;
+const g = globalThis as unknown as { [key: string]: unknown };
 
 // Minimal IntersectionObserver mock for scroll-reveal tests
 g.IntersectionObserver = class IntersectionObserver {
@@ -25,7 +25,8 @@ g.IntersectionObserver = class IntersectionObserver {
           time: 0,
         },
       ],
-      this as any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test mock, full IntersectionObserver interface not needed
+      this as any,
     );
   }
 

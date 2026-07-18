@@ -341,7 +341,7 @@ describe("RevealElement", () => {
   });
 
   it("applies delay as inline style", () => {
-    const { container } = render(
+    render(
       <RevealElement delay={500}>
         <div>Content</div>
       </RevealElement>

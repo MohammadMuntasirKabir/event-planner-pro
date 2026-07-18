@@ -1,13 +1,8 @@
-import { notFound, redirect } from "next/navigation";
-import { submitRsvp, getPublicEvent } from "@/lib/actions/events";
-import Link from "next/link";
+import { notFound } from "next/navigation";
+import { submitRsvp } from "@/lib/actions/events";
 import type { Metadata } from "next";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ token: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "You're Invited — RSVP",
     description: "Respond to this event invitation.",

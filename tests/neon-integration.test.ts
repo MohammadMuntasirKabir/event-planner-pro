@@ -41,7 +41,7 @@ describeDb("Neon PrismaNeonHttp adapter", () => {
       WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
       ORDER BY table_name
     `;
-    const names = (tables as any[]).map((t: any) => t.table_name);
+    const names = (tables as Array<{ table_name: string }>).map((t) => t.table_name);
     expect(names).toContain("users");
     expect(names).toContain("events");
     expect(names).toContain("event_invites");
@@ -52,7 +52,7 @@ describeDb("Neon PrismaNeonHttp adapter", () => {
     const types = await prisma.$queryRaw`
       SELECT typname FROM pg_type WHERE typtype = 'e' ORDER BY typname
     `;
-    const names = (types as any[]).map((t: any) => t.typname);
+    const names = (types as Array<{ typname: string }>).map((t) => t.typname);
     expect(names).toContain("RsvpStatus");
   });
 

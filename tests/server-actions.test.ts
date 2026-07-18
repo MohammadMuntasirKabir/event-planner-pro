@@ -6,7 +6,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Mock Clerk auth and clerkClient
 const mockAuth = vi.fn();
 const mockClerkClient = vi.fn();
-const mockGetUser = vi.fn();
 // Mock NextAuth
 vi.mock("@/auth", () => ({
   auth: mockAuth,

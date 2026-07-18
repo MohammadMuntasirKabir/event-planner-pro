@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import DashboardContent from "@/components/dashboard-content";
 import EventDetailContent from "@/components/event-detail-content";
 import Navbar from "@/components/navbar";
@@ -40,10 +40,10 @@ vi.mock("next/navigation", () => ({
 vi.mock("@clerk/nextjs", () => ({
   useUser: () => ({ user: null, isLoaded: true }),
   useClerk: () => ({ signOut: vi.fn() }),
-  SignUp: (props: any) => (
+  SignUp: () => (
     <div data-testid="clerk-signup">SignUp Component</div>
   ),
-  SignIn: (props: any) => (
+  SignIn: () => (
     <div data-testid="clerk-signin">SignIn Component</div>
   ),
   ClerkProvider: ({ children }: { children: React.ReactNode }) => (
