@@ -40,6 +40,17 @@ export interface RateLimitResult {
   resetAt: number;
 }
 
+/**
+ * Extract the client IP from a NextRequest, honouring common proxy headers.
+ */
+export function getClientIp(request: Request): string {
+  const xff = request.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim();
+  const xri = request.headers.get("x-real-ip");
+  if (xri) return xri;
+  return "unknown";
+}
+
 export function rateLimit(ip: string): RateLimitResult {
   const now = Date.now();
   const entry = store.get(ip);

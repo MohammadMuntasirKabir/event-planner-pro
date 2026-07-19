@@ -10,34 +10,21 @@ vi.mock("@/auth", () => ({
 // Mock rate limiter to always allow
 vi.mock("@/lib/rate-limit", () => ({
   rateLimit: () => ({ allowed: true, remaining: 29, resetAt: Date.now() + 60000 }),
+  getClientIp: () => "127.0.0.1",
 }));
 
-// Mock the db module (used by API routes)
-const mockDb = {
+// Mock prisma (used by event + rsvp + invite routes)
+const mockPrisma = {
   event: {
     findFirst: vi.fn(),
     delete: vi.fn(),
-    findUnique: vi.fn(),
   },
   eventRsvp: {
     delete: vi.fn(),
   },
   eventInvite: {
-    findFirst: vi.fn(),
-  },
-};
-
-vi.mock("@/lib/db", () => ({
-  db: mockDb,
-}));
-
-// Mock prisma (used by invite route)
-const mockPrisma = {
-  event: {
-    findFirst: vi.fn(),
-  },
-  eventInvite: {
     create: vi.fn(),
+    findFirst: vi.fn(),
   },
 };
 
@@ -84,7 +71,7 @@ describe("DELETE /api/events/[eventId]", () => {
 
   it("returns 404 when event not found", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockDb.event.findFirst.mockResolvedValue(null);
+    mockPrisma.event.findFirst.mockResolvedValue(null);
 
     const { DELETE } = await import(
       "@/app/api/events/[eventId]/route"
@@ -100,7 +87,7 @@ describe("DELETE /api/events/[eventId]", () => {
 
   it("returns 404 when user does not own the event", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockDb.event.findFirst.mockResolvedValue(null);
+    mockPrisma.event.findFirst.mockResolvedValue(null);
 
     const { DELETE } = await import(
       "@/app/api/events/[eventId]/route"
@@ -114,11 +101,11 @@ describe("DELETE /api/events/[eventId]", () => {
 
   it("deletes event and returns success when user owns it", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockDb.event.findFirst.mockResolvedValue({
+    mockPrisma.event.findFirst.mockResolvedValue({
       id: "evt-1",
       ownerUserId: "user-1",
     });
-    mockDb.event.delete.mockResolvedValue({ id: "evt-1" });
+    mockPrisma.event.delete.mockResolvedValue({ id: "evt-1" });
 
     const { DELETE } = await import(
       "@/app/api/events/[eventId]/route"
@@ -130,18 +117,18 @@ describe("DELETE /api/events/[eventId]", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
-    expect(mockDb.event.delete).toHaveBeenCalledWith({
+    expect(mockPrisma.event.delete).toHaveBeenCalledWith({
       where: { id: "evt-1" },
     });
   });
 
   it("verifies ownership query uses correct where clause", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockDb.event.findFirst.mockResolvedValue({
+    mockPrisma.event.findFirst.mockResolvedValue({
       id: "evt-1",
       ownerUserId: "user-1",
     });
-    mockDb.event.delete.mockResolvedValue({ id: "evt-1" });
+    mockPrisma.event.delete.mockResolvedValue({ id: "evt-1" });
 
     const { DELETE } = await import(
       "@/app/api/events/[eventId]/route"
@@ -151,7 +138,7 @@ describe("DELETE /api/events/[eventId]", () => {
       params: makeParams("evt-1"),
     });
 
-    expect(mockDb.event.findFirst).toHaveBeenCalledWith({
+    expect(mockPrisma.event.findFirst).toHaveBeenCalledWith({
       where: { id: "evt-1", ownerUserId: "user-1" },
     });
   });
@@ -179,7 +166,7 @@ describe("DELETE /api/events/[eventId]/rsvps/[rsvpId]", () => {
 
   it("returns 404 when event not found or not owned", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockDb.event.findFirst.mockResolvedValue(null);
+    mockPrisma.event.findFirst.mockResolvedValue(null);
 
     const { DELETE } = await import(
       "@/app/api/events/[eventId]/rsvps/[rsvpId]/route"
@@ -195,11 +182,11 @@ describe("DELETE /api/events/[eventId]/rsvps/[rsvpId]", () => {
 
   it("deletes RSVP and returns success when user owns event", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockDb.event.findFirst.mockResolvedValue({
+    mockPrisma.event.findFirst.mockResolvedValue({
       id: "evt-1",
       ownerUserId: "user-1",
     });
-    mockDb.eventRsvp.delete.mockResolvedValue({ id: "rsvp-1" });
+    mockPrisma.eventRsvp.delete.mockResolvedValue({ id: "rsvp-1" });
 
     const { DELETE } = await import(
       "@/app/api/events/[eventId]/rsvps/[rsvpId]/route"
@@ -211,18 +198,18 @@ describe("DELETE /api/events/[eventId]/rsvps/[rsvpId]", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
-    expect(mockDb.eventRsvp.delete).toHaveBeenCalledWith({
+    expect(mockPrisma.eventRsvp.delete).toHaveBeenCalledWith({
       where: { id: "rsvp-1" },
     });
   });
 
   it("verifies ownership query uses correct where clause", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } });
-    mockDb.event.findFirst.mockResolvedValue({
+    mockPrisma.event.findFirst.mockResolvedValue({
       id: "evt-1",
       ownerUserId: "user-1",
     });
-    mockDb.eventRsvp.delete.mockResolvedValue({ id: "rsvp-1" });
+    mockPrisma.eventRsvp.delete.mockResolvedValue({ id: "rsvp-1" });
 
     const { DELETE } = await import(
       "@/app/api/events/[eventId]/rsvps/[rsvpId]/route"
@@ -232,7 +219,7 @@ describe("DELETE /api/events/[eventId]/rsvps/[rsvpId]", () => {
       params: makeParams("evt-1", "rsvp-1"),
     });
 
-    expect(mockDb.event.findFirst).toHaveBeenCalledWith({
+    expect(mockPrisma.event.findFirst).toHaveBeenCalledWith({
       where: { id: "evt-1", ownerUserId: "user-1" },
     });
   });

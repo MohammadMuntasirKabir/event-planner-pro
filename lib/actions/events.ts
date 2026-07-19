@@ -224,25 +224,10 @@ export async function submitRsvp(formData: FormData) {
   redirect(`/invite/${inviteToken ?? ""}`);
 }
 
-export async function getPublicEvent(eventId: string) {
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    include: {
-      rsvps: {
-        orderBy: { respondedAt: "desc" },
-      },
-      invite: true,
-    },
-  });
-
-  return event;
-}
-
 export async function deleteRsvp(eventId: string, rsvpId: string) {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) throw new Error("Unauthorized");
-
   // Verify ownership
   const event = await prisma.event.findFirst({
     where: { id: eventId, ownerUserId: userId },

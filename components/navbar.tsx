@@ -30,7 +30,7 @@ export default function Navbar() {
 
         <nav className="flex items-center gap-1">
           {!isLoaded ? (
-            /* Clerk still loading — show skeleton nav */
+            /* Session still loading — show skeleton nav */
             <div className="flex items-center gap-2 animate-pulse">
               <div className="h-9 w-20 rounded-lg bg-white/5" />
               <div className="h-9 w-28 rounded-lg bg-white/5" />

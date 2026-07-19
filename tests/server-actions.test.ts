@@ -576,34 +576,6 @@ describe("submitRsvp", () => {
   });
 });
 
-describe("getPublicEvent", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("returns event with RSVPs and invite", async () => {
-    const mockEvent = {
-      id: "evt-1",
-      title: "Public Event",
-      rsvps: [{ name: "Alice", status: "going" }],
-      invite: { token: "tok-1" },
-    };
-    mockPrismaEvent.findUnique.mockResolvedValue(mockEvent);
-
-    const { getPublicEvent } = await import("@/lib/actions/events");
-    const result = await getPublicEvent("evt-1");
-    expect(result).toEqual(mockEvent);
-  });
-
-  it("returns null when event not found", async () => {
-    mockPrismaEvent.findUnique.mockResolvedValue(null);
-
-    const { getPublicEvent } = await import("@/lib/actions/events");
-    const result = await getPublicEvent("evt-nonexistent");
-    expect(result).toBeNull();
-  });
-});
-
 describe("deleteRsvp", () => {
   beforeEach(() => {
     vi.clearAllMocks();

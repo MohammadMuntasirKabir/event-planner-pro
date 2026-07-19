@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { db } from "@/lib/db";
-import { rateLimit } from "@/lib/rate-limit";
+import prisma from "@/lib/prisma";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 type Params = Promise<{ eventId: string }>;
-
-function getClientIp(request: NextRequest): string {
-  const xff = request.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
-  const xri = request.headers.get("x-real-ip");
-  if (xri) return xri;
-  return "unknown";
-}
 
 // DELETE /api/events/[eventId]
 export async function DELETE(
@@ -42,7 +34,7 @@ export async function DELETE(
   const { eventId } = await params;
 
   // Verify ownership before deleting
-  const event = await db.event.findFirst({
+  const event = await prisma.event.findFirst({
     where: { id: eventId, ownerUserId: userId },
   });
 
@@ -50,6 +42,6 @@ export async function DELETE(
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
 
-  await db.event.delete({ where: { id: eventId } });
+  await prisma.event.delete({ where: { id: eventId } });
   return NextResponse.json({ success: true });
 }
