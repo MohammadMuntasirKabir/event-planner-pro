@@ -75,6 +75,16 @@ export interface SubmitRsvpInput {
 
 const VALID_RSVP_STATUSES = ["going", "maybe", "not_going"];
 
+// ---- RSVP Submission ----
+
+export interface SubmitRsvpInput {
+  eventId: string;
+  name: string;
+  email: string;
+  status: "going" | "maybe" | "not_going";
+  inviteToken: string | null;
+}
+
 export function validateSubmitRsvp(formData: FormData): ValidationResult<SubmitRsvpInput> {
   const errors: Record<string, string> = {};
 
@@ -115,4 +125,48 @@ export function validateSubmitRsvp(formData: FormData): ValidationResult<SubmitR
   }
 
   return ok({ eventId, name, email, status: status as SubmitRsvpInput["status"], inviteToken });
+}
+
+// ---- Registration ----
+
+export interface RegisterInput {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export function validateRegister(formData: FormData): ValidationResult<RegisterInput> {
+  const errors: Record<string, string> = {};
+
+  const name = (formData.get("name") as string || "").trim();
+  const email = (formData.get("email") as string || "").trim();
+  const password = (formData.get("password") as string || "");
+
+  if (!name) {
+    errors.name = "Name is required";
+  } else if (name.length > 120) {
+    errors.name = "Name must be 120 characters or fewer";
+  }
+
+  if (!email) {
+    errors.email = "Email is required";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.email = "Invalid email address";
+  } else if (email.length > 254) {
+    errors.email = "Email must be 254 characters or fewer";
+  }
+
+  if (!password) {
+    errors.password = "Password is required";
+  } else if (password.length < 6) {
+    errors.password = "Password must be at least 6 characters";
+  } else if (password.length > 128) {
+    errors.password = "Password must be 128 characters or fewer";
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return fail(errors);
+  }
+
+  return ok({ name, email, password });
 }
