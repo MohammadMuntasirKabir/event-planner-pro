@@ -101,18 +101,33 @@ users
 
 ## API Routes
 
+All mutations use REST API routes consumed by client components via `fetch`
+(the UI never relies on Next.js server-action form binding).
+
 | Method | Endpoint | Description |
 |---|---|---|
-| DELETE | `/api/events/[eventId]` | Delete event (owner only, rate limited) |
-| POST | `/api/events/[eventId]/invite` | Generate/return invite token (owner only, rate limited) |
-| DELETE | `/api/events/[eventId]/rsvps/[rsvpId]` | Remove RSVP (owner only, rate limited) |
+| `POST` | `/api/auth/register` | Email/password signup (JSON or FormData) |
+| `GET`/`POST` | `/api/auth/[...nextauth]` | NextAuth credentials provider |
+| `POST` | `/api/events` | Create event (rate limited) |
+| `PATCH` | `/api/events/[eventId]` | Update event (owner only) |
+| `DELETE` | `/api/events/[eventId]` | Delete event (owner only, rate limited) |
+| `POST` | `/api/events/[eventId]/invite` | Generate/return invite token (owner only, rate limited) |
+| `POST` | `/api/events/[eventId]/duplicate` | Duplicate event (owner only) |
+| `GET` | `/api/events/[eventId]/export` | Export RSVPs as CSV (owner only) |
+| `POST` | `/api/events/[eventId]/rsvps` | Public RSVP submission (open) |
+| `DELETE` | `/api/events/[eventId]/rsvps/[rsvpId]` | Remove RSVP (owner only, rate limited) |
+
+> Server actions in `lib/actions/events.ts` (`createEvent`, `submitRsvp`) remain for
+> programmatic/server-side use and are covered by the test suite.
 
 ## Project Structure
 
 ```
 event-planner-pro/
 ├── app/
-│   ├── api/events/[eventId]/     # Event CRUD + invite API (rate limited)
+│   ├── api/events/[eventId]/     # Event CRUD + invite + duplicate + export API (rate limited)
+│   ├── api/events/[eventId]/rsvps/  # Public RSVP submission
+│   ├── api/events/[eventId]/rsvps/[rsvpId]/  # Delete RSVP
 │   ├── auth/                     # NextAuth sign in / sign up
 │   ├── dashboard/                # User's events list (search + sort)
 │   ├── events/new/               # Create event form
@@ -132,7 +147,8 @@ event-planner-pro/
 │   ├── hero-section.tsx, stats-section.tsx, how-it-works.tsx
 │   ├── features-section.tsx, testimonials-section.tsx, faq-section.tsx
 │   ├── dashboard-content.tsx     # Search + sort + copy invite
-│   ├── event-detail-content.tsx  # Edit / duplicate / export CSV
+│   ├── event-detail-content.tsx  # Edit / duplicate / export CSV (fetch-based)
+│   ├── rsvp-form.tsx             # Public RSVP form (fetch-based)
 │   ├── animated-card.tsx         # Scroll-reveal wrapper
 │   └── ui/                        # shadcn-style primitives + sonner
 ├── lib/
