@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { auth } from "@/auth";
-import { generateToken, normalizeEmail } from "@/lib/utils";
+import { generateToken, normalizeEmail, buildCsv } from "@/lib/utils";
 import { validateCreateEvent, validateSubmitRsvp } from "@/lib/validations";
 
 /**
@@ -64,6 +64,85 @@ export async function createEvent(formData: FormData) {
 
   revalidatePath("/dashboard");
   redirect(`/events/${event.id}`);
+}
+
+export async function updateEvent(eventId: string, formData: FormData) {
+  const { userId } = await getOrCreateUser();
+
+  const validation = validateCreateEvent(formData);
+  if (!validation.success) {
+    const messages = Object.values(validation.errors).join("; ");
+    throw new Error(messages);
+  }
+
+  const { title, description, location, eventDate } = validation.data;
+
+  // Verify ownership
+  const existing = await prisma.event.findFirst({
+    where: { id: eventId, ownerUserId: userId },
+  });
+  if (!existing) {
+    throw new Error("Event not found");
+  }
+
+  await prisma.event.update({
+    where: { id: eventId },
+    data: {
+      title,
+      description,
+      location,
+      eventDate: eventDate ? new Date(eventDate) : null,
+    },
+  });
+
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath("/dashboard");
+  redirect(`/events/${eventId}`);
+}
+
+export async function duplicateEvent(eventId: string) {
+  const { userId } = await getOrCreateUser();
+
+  const source = await prisma.event.findFirst({
+    where: { id: eventId, ownerUserId: userId },
+  });
+  if (!source) {
+    throw new Error("Event not found");
+  }
+
+  const copy = await prisma.event.create({
+    data: {
+      ownerUserId: userId,
+      title: `${source.title} (Copy)`,
+      description: source.description,
+      location: source.location,
+      eventDate: source.eventDate,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  redirect(`/events/${copy.id}`);
+}
+
+export async function exportRsvpsCsv(eventId: string): Promise<string> {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) throw new Error("Unauthorized");
+
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, ownerUserId: userId },
+    include: { rsvps: { orderBy: { respondedAt: "desc" } } },
+  });
+  if (!event) throw new Error("Event not found");
+
+  return buildCsv(
+    event.rsvps.map((r) => ({
+      name: r.name,
+      email: r.email,
+      status: r.status,
+      respondedAt: r.respondedAt,
+    }))
+  );
 }
 
 export async function getMyEvents() {

@@ -85,7 +85,7 @@ describe("DashboardContent", () => {
     expect(screen.getByText("5 going, 2 maybe")).toBeTruthy();
   });
 
-  it("renders invite link when event has invite", () => {
+  it("renders copy button when event has invite", () => {
     const events = [
       {
         id: "evt-1",
@@ -100,12 +100,10 @@ describe("DashboardContent", () => {
     ];
 
     render(<DashboardContent events={events} />);
-    const inviteLink = screen.getByText("Invite Link");
-    expect(inviteLink).toBeTruthy();
-    expect(inviteLink.closest("a")?.href).toContain("/invite/tok-1");
+    expect(screen.getByText("Copy")).toBeTruthy();
   });
 
-  it("does not render invite link when no invite", () => {
+  it("renders create-invite link when no invite", () => {
     const events = [
       {
         id: "evt-1",
@@ -120,7 +118,8 @@ describe("DashboardContent", () => {
     ];
 
     render(<DashboardContent events={events} />);
-    expect(screen.queryByText("Invite Link")).toBeNull();
+    expect(screen.getByText("Create invite")).toBeTruthy();
+    expect(screen.queryByText("Copy")).toBeNull();
   });
 
   it("renders RSVP count badges", () => {

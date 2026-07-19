@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import { AuthProvider } from "./auth-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "Event Planner Pro — Plan events that people love",
@@ -26,6 +27,7 @@ export default function RootLayout({
           <Footer />
         </AuthProvider>
       </body>
+      <Toaster />
     </html>
   );
 }

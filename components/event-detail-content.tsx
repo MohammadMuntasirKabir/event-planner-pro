@@ -1,8 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { LinkIcon, Copy, Check, Trash2, Users, Mail, Clock } from "lucide-react";
+import { toast } from "sonner";
+import {
+  LinkIcon,
+  Copy,
+  Check,
+  Trash2,
+  Users,
+  Mail,
+  Clock,
+  Pencil,
+  CopyPlus,
+  Download,
+} from "lucide-react";
 import type { RsvpStatus } from "@prisma/client";
+import { updateEvent, duplicateEvent, exportRsvpsCsv } from "@/lib/actions/events";
 
 type Rsvp = {
   id: string;
@@ -28,6 +41,8 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
   const [copied, setCopied] = useState(false);
   const [inviteToken, setInviteToken] = useState(event.invite?.token || null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const inviteUrl = inviteToken
     ? `${window.location.origin}/invite/${inviteToken}`
@@ -35,7 +50,9 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
 
   async function handleCreateInvite() {
     startTransition(async () => {
-      const res = await fetch(`/api/events/${event.id}/invite`, { method: "POST" });
+      const res = await fetch(`/api/events/${event.id}/invite`, {
+        method: "POST",
+      });
       const data = await res.json();
       if (data.token) {
         setInviteToken(data.token);
@@ -53,8 +70,36 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
   async function handleDeleteRsvp(rsvpId: string) {
     if (!confirm("Remove this RSVP?")) return;
     setDeletingId(rsvpId);
-    await fetch(`/api/events/${event.id}/rsvps/${rsvpId}`, { method: "DELETE" });
+    await fetch(`/api/events/${event.id}/rsvps/${rsvpId}`, {
+      method: "DELETE",
+    });
     window.location.reload();
+  }
+
+  async function handleDuplicate() {
+    if (!confirm("Duplicate this event?")) return;
+    startTransition(async () => {
+      await duplicateEvent(event.id);
+    });
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const csv = await exportRsvpsCsv(event.id);
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${event.title.replace(/\s+/g, "-").toLowerCase()}-rsvps.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("RSVP list exported");
+    } catch {
+      toast.error("Could not export RSVPs");
+    } finally {
+      setExporting(false);
+    }
   }
 
   const statusColors: Record<string, string> = {
@@ -67,34 +112,117 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
     <div className="space-y-8">
       {/* Event Details Card */}
       <div className="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-        <h1 className="text-2xl font-bold text-white mb-2">{event.title}</h1>
-        {event.description && (
-          <p className="text-white/60 mb-4 leading-relaxed">{event.description}</p>
-        )}
+        {editing ? (
+          <form
+            action={updateEvent.bind(null, event.id)}
+            className="space-y-4"
+          >
+            <input
+              name="title"
+              defaultValue={event.title}
+              required
+              minLength={3}
+              maxLength={120}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+            />
+            <textarea
+              name="description"
+              defaultValue={event.description ?? ""}
+              rows={3}
+              maxLength={2000}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20 resize-none"
+            />
+            <input
+              name="location"
+              defaultValue={event.location ?? ""}
+              maxLength={200}
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+            />
+            <input
+              name="eventDate"
+              type="datetime-local"
+              defaultValue={
+                event.eventDate
+                  ? new Date(event.eventDate).toISOString().slice(0, 16)
+                  : ""
+              }
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white [color-scheme:dark] focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+            />
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="submit"
+                className="rounded-lg bg-violet-600 px-6 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-violet-500"
+              >
+                Save Changes
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="rounded-lg border border-white/10 px-6 py-2.5 text-sm font-medium text-white/70 transition-all duration-200 hover:bg-white/5 hover:text-white"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-white mb-2">
+                  {event.title}
+                </h1>
+                {event.description && (
+                  <p className="text-white/60 mb-4 leading-relaxed">
+                    {event.description}
+                  </p>
+                )}
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  onClick={() => setEditing(true)}
+                  className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-sm text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white"
+                  title="Edit event"
+                >
+                  <Pencil className="h-4 w-4" />
+                  <span className="hidden sm:inline">Edit</span>
+                </button>
+                <button
+                  onClick={handleDuplicate}
+                  disabled={isPending}
+                  className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-sm text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white disabled:opacity-50"
+                  title="Duplicate event"
+                >
+                  <CopyPlus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Duplicate</span>
+                </button>
+              </div>
+            </div>
 
-        <div className="flex flex-wrap gap-4 text-sm text-white/50">
-          {event.eventDate && (
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-violet-400" />
-              <span>
-                {new Date(event.eventDate).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-              </span>
+            <div className="flex flex-wrap gap-4 text-sm text-white/50">
+              {event.eventDate && (
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-violet-400" />
+                  <span>
+                    {new Date(event.eventDate).toLocaleDateString("en-US", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              )}
+              {event.location && (
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-violet-400" />
+                  <span>{event.location}</span>
+                </div>
+              )}
             </div>
-          )}
-          {event.location && (
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-violet-400" />
-              <span>{event.location}</span>
-            </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
 
       {/* Invite Section */}
@@ -140,11 +268,23 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
 
       {/* RSVPs Section */}
       <div className="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
-        <div className="flex items-center gap-2 mb-6">
-          <Users className="h-5 w-5 text-violet-400" />
-          <h2 className="text-lg font-semibold text-white">
-            RSVPs ({event.rsvps.length})
-          </h2>
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-violet-400" />
+            <h2 className="text-lg font-semibold text-white">
+              RSVPs ({event.rsvps.length})
+            </h2>
+          </div>
+          {event.rsvps.length > 0 && (
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-sm text-white/70 transition-all duration-200 hover:bg-white/10 hover:text-white disabled:opacity-50"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Export CSV</span>
+            </button>
+          )}
         </div>
 
         {event.rsvps.length === 0 ? (
@@ -156,10 +296,18 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10">
-                  <th className="pb-3 text-left font-medium text-white/50">Name</th>
-                  <th className="pb-3 text-left font-medium text-white/50 hidden sm:table-cell">Email</th>
-                  <th className="pb-3 text-left font-medium text-white/50">Status</th>
-                  <th className="pb-3 text-left font-medium text-white/50 hidden sm:table-cell">Responded</th>
+                  <th className="pb-3 text-left font-medium text-white/50">
+                    Name
+                  </th>
+                  <th className="pb-3 text-left font-medium text-white/50 hidden sm:table-cell">
+                    Email
+                  </th>
+                  <th className="pb-3 text-left font-medium text-white/50">
+                    Status
+                  </th>
+                  <th className="pb-3 text-left font-medium text-white/50 hidden sm:table-cell">
+                    Responded
+                  </th>
                   <th className="pb-3 text-right font-medium text-white/50"></th>
                 </tr>
               </thead>

@@ -42,3 +42,22 @@ export function generateToken(): string {
 export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
+
+type CsvRow = { name: string; email: string; status: string; respondedAt: Date };
+
+export function buildCsv(rows: CsvRow[]): string {
+  const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
+  const header = ["Name", "Email", "Status", "Responded At"];
+  const lines = [
+    header.join(","),
+    ...rows.map((r) =>
+      [
+        escape(r.name),
+        escape(r.email),
+        escape(r.status),
+        escape(new Date(r.respondedAt).toISOString()),
+      ].join(",")
+    ),
+  ];
+  return lines.join("\n");
+}
