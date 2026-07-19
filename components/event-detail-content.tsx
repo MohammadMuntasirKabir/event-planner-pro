@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   LinkIcon,
@@ -15,7 +16,6 @@ import {
   Download,
 } from "lucide-react";
 import type { RsvpStatus } from "@prisma/client";
-import { updateEvent, duplicateEvent, exportRsvpsCsv } from "@/lib/actions/events";
 
 type Rsvp = {
   id: string;
@@ -38,6 +38,7 @@ type EventDetail = {
 
 export default function EventDetailContent({ event }: { event: EventDetail }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [inviteToken, setInviteToken] = useState(event.invite?.token || null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -79,15 +80,24 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
   async function handleDuplicate() {
     if (!confirm("Duplicate this event?")) return;
     startTransition(async () => {
-      await duplicateEvent(event.id);
+      const res = await fetch(`/api/events/${event.id}/duplicate`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        router.push(`/events/${data.eventId}`);
+      } else {
+        toast.error("Could not duplicate event");
+      }
     });
   }
 
   async function handleExport() {
     setExporting(true);
     try {
-      const csv = await exportRsvpsCsv(event.id);
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const res = await fetch(`/api/events/${event.id}/export`);
+      if (!res.ok) throw new Error("export failed");
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -99,6 +109,27 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
       toast.error("Could not export RSVPs");
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function handleEdit(formData: FormData) {
+    const res = await fetch(`/api/events/${event.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: formData.get("title"),
+        description: formData.get("description"),
+        location: formData.get("location"),
+        eventDate: formData.get("eventDate"),
+      }),
+    });
+    if (res.ok) {
+      setEditing(false);
+      router.refresh();
+      toast.success("Event updated");
+    } else {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error || "Could not update event");
     }
   }
 
@@ -114,7 +145,11 @@ export default function EventDetailContent({ event }: { event: EventDetail }) {
       <div className="rounded-xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm">
         {editing ? (
           <form
-            action={updateEvent.bind(null, event.id)}
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              await handleEdit(fd);
+            }}
             className="space-y-4"
           >
             <input

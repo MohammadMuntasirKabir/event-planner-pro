@@ -6,14 +6,23 @@ import { validateRegister } from "@/lib/validations";
 import { normalizeEmail } from "@/lib/utils";
 
 export async function POST(req: NextRequest) {
-  let formData: FormData;
+  let payload: Record<string, string> = {};
+
+  const contentType = req.headers.get("content-type") || "";
   try {
-    formData = await req.formData();
+    if (contentType.includes("application/json")) {
+      payload = (await req.json()) as Record<string, string>;
+    } else {
+      const formData = await req.formData();
+      for (const [key, value] of formData.entries()) {
+        payload[key] = String(value);
+      }
+    }
   } catch {
-    return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const validation = validateRegister(formData);
+  const validation = validateRegister(payload);
   if (!validation.success) {
     const message = Object.values(validation.errors).join("; ");
     return NextResponse.json({ error: message }, { status: 400 });

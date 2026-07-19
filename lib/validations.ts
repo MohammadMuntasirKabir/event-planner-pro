@@ -25,13 +25,24 @@ export interface CreateEventInput {
   eventDate: string | null;
 }
 
-export function validateCreateEvent(formData: FormData): ValidationResult<CreateEventInput> {
+export function validateCreateEvent(
+  input: FormData | {
+    title?: string;
+    description?: string;
+    location?: string;
+    eventDate?: string;
+  }
+): ValidationResult<CreateEventInput> {
   const errors: Record<string, string> = {};
 
-  const title = (formData.get("title") as string || "").trim();
-  const description = (formData.get("description") as string || "").trim() || null;
-  const location = (formData.get("location") as string || "").trim() || null;
-  const eventDate = (formData.get("eventDate") as string || "").trim() || null;
+  const get = (key: string) =>
+    input instanceof FormData
+      ? ((input.get(key) as string) || "")
+      : ((input[key as keyof typeof input] as string) || "");
+  const title = get("title").trim();
+  const description = get("description").trim() || null;
+  const location = get("location").trim() || null;
+  const eventDate = get("eventDate").trim() || null;
 
   if (!title) {
     errors.title = "Title is required";
@@ -85,14 +96,24 @@ export interface SubmitRsvpInput {
   inviteToken: string | null;
 }
 
-export function validateSubmitRsvp(formData: FormData): ValidationResult<SubmitRsvpInput> {
+export function validateSubmitRsvp(
+  input: FormData | {
+    eventId?: string;
+    name?: string;
+    email?: string;
+    status?: string;
+    inviteToken?: string;
+  }
+): ValidationResult<SubmitRsvpInput> {
   const errors: Record<string, string> = {};
 
-  const eventId = (formData.get("eventId") as string || "").trim();
-  const name = (formData.get("name") as string || "").trim();
-  const email = (formData.get("email") as string || "").trim();
-  const status = (formData.get("status") as string || "").trim();
-  const inviteToken = (formData.get("inviteToken") as string || "").trim() || null;
+  const get = (key: string) =>
+    input instanceof FormData ? ((input.get(key) as string) || "") : ((input[key as keyof typeof input] as string) || "");
+  const eventId = get("eventId").trim();
+  const name = get("name").trim();
+  const email = get("email").trim();
+  const status = get("status").trim();
+  const inviteToken = get("inviteToken").trim() || null;
 
   if (!eventId) {
     errors.eventId = "Event ID is required";
@@ -135,12 +156,16 @@ export interface RegisterInput {
   password: string;
 }
 
-export function validateRegister(formData: FormData): ValidationResult<RegisterInput> {
+export function validateRegister(data: {
+  name?: string;
+  email?: string;
+  password?: string;
+}): ValidationResult<RegisterInput> {
   const errors: Record<string, string> = {};
 
-  const name = (formData.get("name") as string || "").trim();
-  const email = (formData.get("email") as string || "").trim();
-  const password = (formData.get("password") as string || "");
+  const name = (data.name || "").trim();
+  const email = (data.email || "").trim();
+  const password = (data.password || "");
 
   if (!name) {
     errors.name = "Name is required";
